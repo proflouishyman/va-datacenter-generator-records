@@ -25,10 +25,10 @@ var RCLR={emergency_outage:"var(--rc-emergency)",maintenance:"var(--rc-maintenan
 function rcOf(r){return REASONS.indexOf(r)>=0?r:"other";}
 
 /* ---- state ---- */
-var TABS=PAGE?[PAGE]:["ov","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","src","met"];
-var PAGEFILE={ov:"index.html",map:"map.html",fac:"facilities.html",doc:"documents.html",run:"runlogs.html",out:"outages.html",spa:"spatial.html",emi:"emissions.html",hea:"health.html",aq:"airquality.html",tax:"taxes.html",ele:"electricity.html",dem:"demographics.html",cap:"capacity.html",lar:"largeloads.html",nei:"nei.html",src:"sources.html",met:"methods.html"};
-var PAGENAME={ov:"Overview",map:"Map",fac:"Facilities",doc:"Documents",run:"Run logs",out:"Outages",spa:"Spatial analysis",emi:"Emissions & wind",hea:"Health impacts",aq:"Air quality",tax:"Taxes",ele:"Electricity prices",dem:"People nearby",cap:"Capacity market",lar:"Large loads",nei:"Emissions inventory",src:"Sources",met:"Methods & sources"};
-var PAGEORDER=["ov","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","src","met"];
+var TABS=PAGE?[PAGE]:["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","exp","tol","rel","src","met"];
+var PAGEFILE={ov:"index.html",qs:"questions.html",enf:"enforcement.html",dpr:"deathsperrun.html",exp:"experiments.html",tol:"tolerance.html",rel:"reliability.html",map:"map.html",fac:"facilities.html",doc:"documents.html",run:"runlogs.html",out:"outages.html",spa:"spatial.html",emi:"emissions.html",hea:"health.html",aq:"airquality.html",tax:"taxes.html",ele:"electricity.html",dem:"demographics.html",cap:"capacity.html",lar:"largeloads.html",nei:"nei.html",src:"sources.html",met:"methods.html"};
+var PAGENAME={ov:"Overview",qs:"Research questions",enf:"Enforcement",dpr:"Deaths per run",exp:"Natural experiments",tol:"Outage tolerance",rel:"Reliability and the cost of risk",map:"Map",fac:"Facilities",doc:"Documents",run:"Run logs",out:"Outages",spa:"Spatial analysis",emi:"Emissions & wind",hea:"Health impacts",aq:"Air quality",tax:"Taxes",ele:"Electricity prices",dem:"People nearby",cap:"Capacity market",lar:"Large loads",nei:"Emissions inventory",src:"Sources",met:"Methods & sources"};
+var PAGEORDER=["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","exp","tol","rel","src","met"];
 var S={tab:PAGE||"ov",fac:"",
   doc:{q:"",req:"",ext:"",folder:"",sort:"title",dir:1,page:0},
   run:{eng:"",from:"",to:"",rc:"",sort:"date",dir:1,page:0,ptpage:0},
@@ -68,7 +68,7 @@ function setFac(r){S.fac=r;S.doc.page=0;S.run.page=0;S.run.ptpage=0;S.run.eng=""
   try{localStorage.setItem("deq_fac",r||"");}catch(e){}try{history.replaceState(null,"",(location.pathname||"")+(location.search||"")+facHash());}catch(e){}
   renderNav();renderAll();}
 function go(t){if(!PAGE){showTab(t);window.scrollTo(0,0);}else location.href=PAGEFILE[t]+facHash();}
-var GROUPS=[["ov"],["Records",["doc","fac","run"]],["Grid",["out","cap","lar","ele"]],["Impacts",["emi","nei","aq","hea","dem","tax"]],["Analysis",["map","spa"]],["About",["met","src"]]];
+var GROUPS=[["ov"],["qs"],["Records",["doc","fac","run","enf"]],["Grid",["out","cap","lar","ele","exp","tol","rel"]],["Impacts",["emi","nei","aq","hea","dem","tax","dpr"]],["Analysis",["map","spa"]],["About",["met","src"]]];
 function closeMenus(){Array.prototype.forEach.call(document.querySelectorAll("#mainnav .mg"),function(m){m.classList.remove("open");var b=m.querySelector("button");if(b)b.setAttribute("aria-expanded","false");});}
 function renderNav(){var h="",nav=$("#mainnav");
   if(PAGE){nav.className="multi";
@@ -269,7 +269,7 @@ function renderRun(){
 /* =====================================================================
    Visualizations (hand-written SVG, sized to the container, themed by CSS tokens)
    ===================================================================== */
-var GEO=D("d-geo","DEQ_GEO")||[],LAY=D("d-layers","DEQ_LAYERS")||{lines:[],subs:[],dcs:[],notes:{lines:"",subsHIFLD:"",subsOSM:"",dcs:""}},OUTD=D("d-outages","DEQ_OUTAGES")||{},GS=D("d-geostats","DEQ_GEOSTATS"),EMI=D("d-emissions","DEQ_EMISSIONS"),HEA=D("d-health","DEQ_HEALTH"),OZ=D("d-ozone","DEQ_OZONE"),TAX=D("d-tax","DEQ_TAX"),ELE=D("d-electricity","DEQ_ELECTRICITY"),DEM=D("d-demographics","DEQ_DEMOGRAPHICS"),CAP=D("d-capacity","DEQ_CAPACITY"),LAR=D("d-large_load","DEQ_LARGE_LOAD"),NEI=D("d-nei","DEQ_NEI"),GRID=D("d-grid","DEQ_GRID"),SRC=D("d-sources","DEQ_SOURCES");
+var GEO=D("d-geo","DEQ_GEO")||[],LAY=D("d-layers","DEQ_LAYERS")||{lines:[],subs:[],dcs:[],notes:{lines:"",subsHIFLD:"",subsOSM:"",dcs:""}},OUTD=D("d-outages","DEQ_OUTAGES")||{},GS=D("d-geostats","DEQ_GEOSTATS"),EMI=D("d-emissions","DEQ_EMISSIONS"),HEA=D("d-health","DEQ_HEALTH"),OZ=D("d-ozone","DEQ_OZONE"),TAX=D("d-tax","DEQ_TAX"),ELE=D("d-electricity","DEQ_ELECTRICITY"),DEM=D("d-demographics","DEQ_DEMOGRAPHICS"),CAP=D("d-capacity","DEQ_CAPACITY"),LAR=D("d-large_load","DEQ_LARGE_LOAD"),NEI=D("d-nei","DEQ_NEI"),QS=D("d-questions","DEQ_QUESTIONS"),ENF=D("d-enforcement","DEQ_ENFORCEMENT"),DPR=D("d-deaths_per_run","DEQ_DEATHS_PER_RUN"),NEX=D("d-natural_experiments","DEQ_NATURAL_EXPERIMENTS"),TOL=D("d-outage_tolerance","DEQ_OUTAGE_TOLERANCE"),REL=D("d-reliability_risk","DEQ_RELIABILITY_RISK"),GRID=D("d-grid","DEQ_GRID"),SRC=D("d-sources","DEQ_SOURCES");
 function overlays(){var o={kde:[],links:[],points:[],plumes:[],choro:[]};
   [[GS,"Spatial analysis"],[EMI,"Emissions"],[HEA,"Health"],[OZ,"Air quality"],[TAX,"Taxes"],[ELE,"Electricity"],[DEM,"People nearby"],[CAP,"Capacity market"],[LAR,"Large loads"],[NEI,"Emissions inventory"]].forEach(function(p){var d=p[0],mo=d&&d.map_overlays;
     if(mo){if(mo.kde){var k=mo.kde;k.src=p[1];o.kde.push(k);}(mo.links||[]).forEach(function(l){o.links.push(l);});(mo.points||[]).forEach(function(q){o.points.push(q);});if(mo.choropleth){var c=mo.choropleth;c.src=p[1];o.choro.push(c);}}
@@ -410,7 +410,8 @@ function renderOv(){
   h+='<div class="cols2"><div class="card"><h3>Documents by file type</h3><div class="ch" data-ch="ovTypes"></div></div><div class="card"><h3>Documents by facility</h3><div class="ch" data-ch="ovFacs"></div></div></div>';
   h+='<div class="card"><h3>Documents by portal upload date</h3><div class="ch" data-ch="ovTime"></div><p class="cap">Upload date is when DEQ posted the document to the NextRequest portal, not the date of the records inside it. The record dates inside the run logs are shown below.</p></div>';
   h+='<div class="card" style="margin-top:14px"><h3>Run-log coverage: which facilities have logs, and for which months</h3><div class="ch" data-ch="ovCover"></div><p class="cap">One row per facility (all of its workbooks merged). Only facilities whose workbooks contained a parseable run log appear ('+fmt(Object.keys(EV_BY_REG).length)+' with dated events; '+fmt(Object.keys(PT_BY_REG).filter(function(k){return !EV_BY_REG[k];}).length)+' more have period totals only and are not drawn here). Duplicate copies of the same event are counted once and rows flagged as implausible are excluded: '+cleanNote()+'</p></div>';
-  p.innerHTML=h;drawCharts(p);
+  h='<div class="selcard" style="font-size:14px"><b>Start here: Research questions.</b> The ten questions this analysis asks about data-center backup generators, the short answer to each, and the pages that hold the evidence. <a class="btn" id="ovQs" href="'+PAGEFILE.qs+'">Open Research questions</a></div>'+h;
+  p.innerHTML=h;var oq=$("#ovQs");if(oq&&!PAGE)oq.onclick=function(e){e.preventDefault();showTab("qs");window.scrollTo(0,0);};drawCharts(p);
 }
 
 /* ======================= MAP ======================= */
@@ -769,7 +770,10 @@ function groupsOf(arr){var g=[];arr.forEach(function(x){var k=x.group||"";if(g.i
 function axes(W,H,L,R,T,B,xl,yl){return '<line class="ax" x1="'+L+'" x2="'+(W-R)+'" y1="'+(H-B)+'" y2="'+(H-B)+'"/><line class="ax" x1="'+L+'" x2="'+L+'" y1="'+T+'" y2="'+(H-B)+'"/><text x="'+(L+(W-L-R)/2)+'" y="'+(H-4)+'" text-anchor="middle">'+esc(xl||"")+'</text><text transform="translate(11,'+(T+(H-T-B)/2)+') rotate(-90)" text-anchor="middle">'+esc(yl||"")+'</text>';}
 function gLegend(gs){if(gs.length<2)return "";return legendHtml(gs.map(function(g,i){return [g||"(all)",GC[i%GC.length]];}));}
 function numCell(c){return (c%1===0&&c>=1800&&c<=2100)?String(c):fmt(c,c%1?3:0);}
-function cellHtml(c){c=String(c==null?"":c);var m=/^https?:\/\/\S+$/.exec(c.trim());return m?'<a href="'+esc(m[0])+'" target="_blank" rel="noopener">'+esc(nowrap(m[0].replace(/^https?:\/\/(www\.)?/,""),48))+'</a>':esc(c).replace(/(https?:\/\/[^\s<)]+)/g,'<a href="$1" target="_blank" rel="noopener">link</a>');}
+var PGRX=null;
+function pgRx(){if(!PGRX)PGRX=new RegExp("<a [^>]*>.*?<\\/a>|(^|[^\\w./-])("+Object.keys(PAGEFILE).map(function(k){return PAGEFILE[k].replace(".","\\.");}).join("|")+")(?![\\w-])","g");return PGRX;}
+function cellHtml(c){c=String(c==null?"":c);var m=/^https?:\/\/\S+$/.exec(c.trim());if(m)return '<a href="'+esc(m[0])+'" target="_blank" rel="noopener">'+esc(nowrap(m[0].replace(/^https?:\/\/(www\.)?/,""),48))+'</a>';
+  return esc(c).replace(/(https?:\/\/[^\s<)]+)/g,'<a href="$1" target="_blank" rel="noopener">link</a>').replace(pgRx(),function(x,a,b){return b?a+'<a href="'+b+facHash()+'" data-pg="'+b+'">'+b+'</a>':x;});}
 function isoDay(v){if(typeof v!=="string")return null;var m=/^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(v);return m?Date.UTC(+m[1],+m[2]-1,+(m[3]||1))/864e5:null;}
 function catLabel(c,all){c=String(c);var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(c);if(m&&all.every(function(x){return String(x).slice(4)===c.slice(4);}))return m[1];return c;}
 function vbar(el,W,f){ // vertical bars: categories + series[{name,values}] or series[{name,points:[[category,value]]}]; grouped, or stacked when f.stacked
@@ -917,6 +921,12 @@ function renderDem(){renderSections($("#pane-dem"),DEM,{empty:"Demographic analy
 function renderCap(){renderSections($("#pane-cap"),CAP,{empty:"Capacity-market analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
 function renderLar(){renderSections($("#pane-lar"),LAR,{empty:"Large-load analysis not available.",emptyNote:"The large-load analysis file was not found when this site was built."});}
 function renderNei(){renderSections($("#pane-nei"),NEI,{empty:"Emissions-inventory analysis not available.",emptyNote:"The EPA National Emissions Inventory analysis file was not found when this site was built."});}
+function renderQs(){renderSections($("#pane-qs"),QS,{empty:"Research questions not available.",emptyNote:"The research-questions file was not found when this site was built."});}
+function renderEnf(){renderSections($("#pane-enf"),ENF,{empty:"Enforcement records not available.",emptyNote:"The enforcement analysis file was not found when this site was built."});}
+function renderDpr(){renderSections($("#pane-dpr"),DPR,{empty:"Deaths-per-run analysis not available.",emptyNote:"The deaths-per-run analysis file was not found when this site was built."});}
+function renderExp(){renderSections($("#pane-exp"),NEX,{empty:"Natural-experiments analysis not available.",emptyNote:"The natural-experiments analysis file was not found when this site was built."});}
+function renderTol(){renderSections($("#pane-tol"),TOL,{empty:"Outage-tolerance analysis not available.",emptyNote:"The outage-tolerance analysis file was not found when this site was built."});}
+function renderRel(){renderSections($("#pane-rel"),REL,{empty:"Reliability analysis not available.",emptyNote:"The reliability analysis file was not found when this site was built."});}
 function renderSrc(){
   var p=$("#pane-src"),h='<p class="sub">Everything the site draws on: DEQ portal requests, the stored public data layers, and the Sources tables and source URLs found in each analysis page.</p>';
   h+='<h2>DEQ portal requests</h2><div class="tw"><table><thead><tr><th>Request</th><th>State</th><th>Date</th><th>Documents</th><th>Portal</th></tr></thead><tbody>'+Object.keys(META.requests).sort().map(function(k){var r=META.requests[k];return '<tr><td class="mono">'+esc(k)+'</td><td>'+esc(r.state||"")+'</td><td>'+esc(r.date||"")+'</td><td class="n">'+fmt(r.n)+'</td><td><a href="'+esc(REQ_URL[k])+'" target="_blank" rel="noopener">request page</a></td></tr>';}).join("")+'</tbody></table></div>';
@@ -940,7 +950,7 @@ function renderMet(){
 /* ---- headline tiles (every page) ---- */
 var HLP=D("d-headlines_pages","DEQ_HEADLINES_PAGES"),HXS=D("d-health_sites","DEQ_HEALTH_SITES");
 var HL_PAGEKEY={ov:"overview",doc:"documents",fac:"facilities",run:"runlogs",out:"outages",map:"map"};
-function headlinesFor(t){var d={spa:GS,emi:EMI,hea:HEA,aq:OZ,tax:TAX,ele:ELE,dem:DEM,cap:CAP,lar:LAR,nei:NEI}[t];
+function headlinesFor(t){var d={qs:QS,enf:ENF,dpr:DPR,exp:NEX,tol:TOL,rel:REL,spa:GS,emi:EMI,hea:HEA,aq:OZ,tax:TAX,ele:ELE,dem:DEM,cap:CAP,lar:LAR,nei:NEI}[t];
   if(d)return d.headlines||[];var k=HL_PAGEKEY[t];return (k&&HLP&&HLP.pages&&HLP.pages[k])||[];}
 function renderHeadlines(t){var host=$("#hlHost");if(!host)return;var L=headlinesFor(t);
   if(!L.length){host.innerHTML="";return;}
@@ -1100,8 +1110,10 @@ function hxMapCtl(){return '<label>Health scenario <select id="mhs">'+hxOpts(hxS
 function hxMapBind(p){["mhs","mhm","mhx"].forEach(function(id){var e=p.querySelector("#"+id);if(!e)return;e.onchange=function(){if(id==="mhs")HX.scen=this.value;else if(id==="mhm")HX.method=this.value;else HX.metric=this.value;hxSave();drawMap();};});}
 function hxMapLegend(){var v=HXMAP.vmax;return '<span>size = '+esc(HXMLAB[HX.metric].toLowerCase())+', '+esc(hxScenLab(HX.scen))+', '+esc(HXSHORT[HX.method])+': '+[v,v/4,v/16].map(function(z){var r=3+17*Math.sqrt(z/v);return '<svg width="'+(2*r+6)+'" height="'+(2*r+4)+'" viewBox="'+(-r-3)+' '+(-r-2)+' '+(2*r+6)+' '+(2*r+4)+'" aria-hidden="true"><circle r="'+r+'" fill="none" stroke="var(--ink-2)" stroke-width="1.3"/></svg>'+esc(hxF(HX.metric,z));}).join(" &nbsp; ")+'; sites with no estimate are small dots</span>';}
 
-function renderAll(){renderChip();var f={ov:renderOv,map:renderMap,fac:renderFac,doc:renderDoc,run:renderRun,out:renderOut,spa:renderSpa,emi:renderEmi,hea:renderHea,aq:renderAq,tax:renderTax,ele:renderEle,dem:renderDem,cap:renderCap,lar:renderLar,nei:renderNei,src:renderSrc,met:renderMet};
+function renderAll(){renderChip();var f={ov:renderOv,map:renderMap,fac:renderFac,doc:renderDoc,run:renderRun,out:renderOut,spa:renderSpa,emi:renderEmi,hea:renderHea,aq:renderAq,tax:renderTax,ele:renderEle,dem:renderDem,cap:renderCap,lar:renderLar,nei:renderNei,qs:renderQs,enf:renderEnf,dpr:renderDpr,exp:renderExp,tol:renderTol,rel:renderRel,src:renderSrc,met:renderMet};
   Object.keys(f).forEach(function(k){if($("#pane-"+k))f[k]();});renderHeadlines(S.tab);showTab(S.tab);}
 if(window.matchMedia){try{window.matchMedia("(prefers-color-scheme: dark)").addListener(function(){setTimeout(function(){renderAll();},50);});}catch(e){}}
+document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-pg]");if(!a||PAGE||e.ctrlKey||e.metaKey||e.shiftKey)return;
+  var f=a.getAttribute("data-pg"),k=Object.keys(PAGEFILE).filter(function(x){return PAGEFILE[x]===f;})[0];if(k){e.preventDefault();showTab(k);window.scrollTo(0,0);}});
 renderHeader();renderNav();renderAll();
 })();
