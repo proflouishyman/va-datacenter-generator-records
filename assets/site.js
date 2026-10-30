@@ -206,6 +206,17 @@ function eventsCsv(ev){
   ev.forEach(function(x){out.push(cols.map(function(c){return csvCell(c==="portal_url"?portalDoc(x[EC.doc_id]):x[EC[c]]);}).join(","));});
   return out.join("\n")+"\n";
 }
+var OCRD=D("d-run_log_ocr","DEQ_RUN_LOG_OCR");
+function ocrTable(t,cls){var h='<div class="tw"><table><thead><tr>'+t.columns.map(function(c){return '<th'+(c==="Hours"?' class="n"':"")+'>'+esc(c)+'</th>';}).join("")+'</tr></thead><tbody>';
+  t.rows.forEach(function(r){h+='<tr>'+r.map(function(v,i){var n=t.columns[i]==="Hours";return '<td'+(n?' class="n"':"")+'>'+esc(v==null?"":(n&&typeof v==="number"?fmt(v,v%1?2:0):v))+'</td>';}).join("")+'</tr>';});
+  return h+'</tbody></table></div>';}
+function ocrHtml(){if(!OCRD)return "";var h='<h2 id="sec-ocr">OCR</h2>';
+  OCRD.paragraphs.forEach(function(t){h+='<p class="sub">'+esc(t)+'</p>';});
+  h+='<h3>Spot-check accuracy by class</h3>'+ocrTable(OCRD.accuracy);
+  var u=OCRD.unverified;
+  h+='<h3>'+esc(u.title)+' ('+fmt(u.rows.length)+')</h3><p class="sub">These rows were read by OCR models from classes that failed the spot check or have no known facility. They are not in any total, chart or analysis on this site, and individual values can be wrong.</p>'+
+   '<details><summary>Show the unverified rows</summary>'+ocrTable(u)+'</details>';
+  return h;}
 function renderRun(){
   var p=$("#pane-run");
   if(!HAVE_EV){p.innerHTML='<div class="note"><b>Run logs not available.</b> No run-log events were found when this page was built.</div>'+(PT.length?"":"");return;}
@@ -246,6 +257,7 @@ function renderRun(){
   pt.slice(r.ptpage*ppp,(r.ptpage+1)*ppp).forEach(function(x){var did=x[PC.doc_id];
     h+='<tr><td class="mono">'+esc(x[PC.facility_reg])+'</td><td>'+esc(x[PC.engine_id])+'</td><td>'+esc(x[PC.period_type])+'</td><td class="mono">'+esc(x[PC.period_start])+(x[PC.period_end]?" → "+esc(x[PC.period_end]):"")+'</td><td class="n">'+(x[PC.hours]==null||x[PC.hours]===""?"":fmt(x[PC.hours],2))+'</td><td>'+esc(x[PC.hours_kind])+'</td><td class="t"><div>'+esc(x[PC.source_file])+'</div><div class="muted">sheet '+esc(x[PC.sheet])+', row '+esc(x[PC.source_row])+' · <a href="'+esc(portalDoc(did))+'" target="_blank" rel="noopener">portal</a></div></td></tr>';});
   h+='</tbody></table></div>';}
+  h+=ocrHtml();
   keepFocus(function(){p.innerHTML=h;});
   $("#rfac").onchange=function(){setFac(this.value);};
   $("#reng").onchange=function(){r.eng=this.value;r.page=0;r.ptpage=0;renderRun();};
