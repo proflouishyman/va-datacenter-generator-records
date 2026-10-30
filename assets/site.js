@@ -86,7 +86,7 @@ function renderNav(){var h="",nav=$("#mainnav");
   }else{h=TABS.map(function(k){return '<button role="tab" id="tab-'+k+'" data-tab="'+k+'" aria-selected="'+(k===S.tab?"true":"false")+'">'+PAGENAME[k]+'</button>';}).join("");nav.innerHTML=h;
     Array.prototype.forEach.call(nav.querySelectorAll("button"),function(b){b.onclick=function(){showTab(b.getAttribute("data-tab"));};});}}
 function showTab(t){
-  if(PAGE)return;S.tab=t;try{localStorage.setItem("deq_tab",t);}catch(e){}
+  if(PAGE)return;renderHeadlines(t);S.tab=t;try{localStorage.setItem("deq_tab",t);}catch(e){}
   TABS.forEach(function(k){var e=$("#pane-"+k);if(e)e.classList.toggle("hidden",k!==t);var b=$("#tab-"+k);if(b)b.setAttribute("aria-selected",k===t?"true":"false");});
   hideTip();var pn=$("#pane-"+t);if(t==="map"&&$("#mapSvg"))drawMap();else if(pn)drawCharts(pn);
 }
@@ -414,12 +414,12 @@ function renderOv(){
 }
 
 /* ======================= MAP ======================= */
-var MAP={view:null,W:0,ext:"nova",show:{counties:true,lines:true,hifld:true,osm:false,dcs:true,labels:true,kde:false,links:false,plume:false,choro:false,"k:nei_point":true},size:"gens",only:"",plume:0,choro:0};
+var MAP={view:null,W:0,ext:"nova",show:{counties:true,lines:true,hifld:true,osm:false,dcs:true,labels:true,kde:false,links:false,plume:false,choro:false,health:false,"k:nei_point":true},size:"gens",only:"",plume:0,choro:0};
 var KLAB={nei_point:"EPA NEI data-center point sources (2023)"};function klab(k){return KLAB[k]||k;}
 var PLACES=[["Leesburg",39.1157,-77.5636,1],["Ashburn",39.0438,-77.4874,1],["Sterling",39.0062,-77.4286,1],["Herndon",38.9696,-77.3861,1],["Reston",38.9586,-77.3570,1],["Dulles Airport",38.9531,-77.4565,1],["Chantilly",38.8943,-77.4311,1],["Aldie",38.9768,-77.6428,1],["Manassas",38.7509,-77.4753,1],["Gainesville",38.7957,-77.6142,1],["Haymarket",38.8120,-77.6364,1],["Warrenton",38.7135,-77.7953,1],["Fort Belvoir",38.7160,-77.1470,1],
  ["Washington",38.9072,-77.0369,2],["Richmond",37.5407,-77.4360,2],["Fredericksburg",38.3032,-77.4605,2],["Culpeper",38.4732,-77.9966,2],["Winchester",39.1857,-78.1633,2],["Charlottesville",38.0293,-78.4767,2],["Lynchburg",37.4138,-79.1423,2],["Roanoke",37.2710,-79.9414,2],["Norfolk",36.8508,-76.2859,2],["Boydton",36.6676,-78.3875,2],["Petersburg",37.2279,-77.4019,2],["Harrisonburg",38.4496,-78.8689,2],["Bristol",36.5951,-82.1887,2],["Danville",36.5860,-79.3950,2]];
 function mer(lon,lat){var x=lon*Math.PI/180,y=Math.log(Math.tan(Math.PI/4+lat*Math.PI/360));return [x,-y];}
-function mapRadius(g){if(MAP.size==="rate"){var v=+g.rate||0;return 2.5+0.75*Math.sqrt(v/1000);}var n=+g.gens||0;return 2.5+1.0*Math.sqrt(n);}
+function mapRadius(g){if(HXMAP){var hv=HXMAP.by[String(g.reg)];return hv==null?2.5:3+17*Math.sqrt(hv/HXMAP.vmax);}if(MAP.size==="rate"){var v=+g.rate||0;return 2.5+0.75*Math.sqrt(v/1000);}var n=+g.gens||0;return 2.5+1.0*Math.sqrt(n);}
 function mapKvClass(kv){return kv>=450?"500":kv>=200?"230":kv>0?"low":"na";}
 function renderMap(){
   var p=$("#pane-map");
@@ -428,6 +428,7 @@ function renderMap(){
   var docRegs=Object.keys(DOC_BY_REG),missing=docRegs.filter(function(r){return !inMap[r];});
   var toggles=[["counties","County outlines"],["lines","Transmission lines"],["hifld","Substations (HIFLD copy)"],["osm","Substations (OpenStreetMap)"],["dcs","Data-center buildings, Loudoun only (OSM)"],["labels","Place labels"]];
   var OV=overlays();
+  if(HXS)toggles.push(["health","Health layer: size sites by modelled deaths, dollars or NOx tons"]);
   if(OV.kde.length)toggles.push(["kde",OV.kde.map(function(k){return k.label||"Density";}).join(" / ")]);
   if(OV.links.length)toggles.push(["links","Links ("+OV.links.length+")"]);
   var kc={};OV.points.forEach(function(q){var k=q.kind||"point";kc[k]=(kc[k]||0)+1;});Object.keys(kc).forEach(function(k){toggles.push(["k:"+k,esc(klab(k))+" ("+kc[k]+")"]);});
@@ -435,18 +436,18 @@ function renderMap(){
   if(OV.plumes.length)toggles.push(["plume","Plume raster"]);
   var h='<p class="sub">Backup-generator permits across Virginia from the Piedmont Environmental Council layer of DEQ air permits, over statewide transmission lines and substations and Census county outlines. No map tiles are used. Drag to pan, wheel or pinch to zoom, click a facility to filter the other pages.</p>';
   h+='<div class="tg"><label>View <select id="mext"><option value="nova"'+(MAP.ext==="nova"?" selected":"")+'>Northern Virginia</option><option value="state"'+(MAP.ext==="state"?" selected":"")+'>All Virginia sites</option></select></label>'+toggles.map(function(t){return '<label><input type="checkbox" data-mt="'+t[0]+'"'+(MAP.show[t[0]]===false||MAP.show[t[0]]===undefined&&/^k:/.test(t[0])?"":" checked")+'>'+t[1]+'</label>';}).join("")+
-    (OV.choro.length>1?'<label>Shading <select id="mchoro">'+OV.choro.map(function(c,i){return '<option value="'+i+'"'+(i===MAP.choro?" selected":"")+'>'+esc(c.title||("Layer "+(i+1)))+'</option>';}).join("")+'</select></label>':"")+(OV.plumes.length>1?'<label>Plume <select id="mplume">'+OV.plumes.map(function(pl,i){return '<option value="'+i+'"'+(i===MAP.plume?" selected":"")+'>'+esc(pl.title||("Plume "+(i+1)))+'</option>';}).join("")+'</select></label>':"")+'<label>Point size = <select id="msize"><option value="gens"'+(MAP.size==="gens"?" selected":"")+'>number of generators</option><option value="rate"'+(MAP.size==="rate"?" selected":"")+'>permitted capacity (kW)</option></select></label>'+
+    (OV.choro.length>1?'<label>Shading <select id="mchoro">'+OV.choro.map(function(c,i){return '<option value="'+i+'"'+(i===MAP.choro?" selected":"")+'>'+esc(c.title||("Layer "+(i+1)))+'</option>';}).join("")+'</select></label>':"")+(OV.plumes.length>1?'<label>Plume <select id="mplume">'+OV.plumes.map(function(pl,i){return '<option value="'+i+'"'+(i===MAP.plume?" selected":"")+'>'+esc(pl.title||("Plume "+(i+1)))+'</option>';}).join("")+'</select></label>':"")+(MAP.show.health&&HXS?hxMapCtl():"")+'<label>Point size = <select id="msize"><option value="gens"'+(MAP.size==="gens"?" selected":"")+'>number of generators</option><option value="rate"'+(MAP.size==="rate"?" selected":"")+'>permitted capacity (kW)</option></select></label>'+
     '<label>Show <select id="monly"><option value="">all permitted facilities</option><option value="docs"'+(MAP.only==="docs"?" selected":"")+'>facilities with documents in the releases</option><option value="logs"'+(MAP.only==="logs"?" selected":"")+'>facilities with run logs</option></select></label></div>';
   h+='<div class="mapbox"><div id="mapSvg"></div><div class="mapctl"><button type="button" id="mz-in" aria-label="Zoom in">+</button><button type="button" id="mz-out" aria-label="Zoom out">−</button><button type="button" id="mz-rs" aria-label="Reset view" style="font-size:13px">⟲</button></div></div>';
   h+='<div class="lg" id="mapLegend"></div><div id="mapSel"></div>';
   var nn=GEO.filter(function(g){return g.nova;}).length;
   h+='<p class="cap"><b>Capacity:</b> the permit-layer field <span class="mono">Total_Rate</span> is kilowatts (kW) of rated generator capacity, checked against run-log headers: CloudHQ 74155 is 345,048 Tier 2 plus 225,000 Tier 4 = 190 generators x 3,000 kW plus a 48 kW fire pump = 570,048, and Equinix 73199 is 7 x 2,000 kW = 14,000. <b>County outlines:</b> '+esc(LAY.notes.counties||"")+' <b>Grid layers:</b> '+esc(LAY.notes.lines)+' '+esc(LAY.notes.subsHIFLD)+' '+esc(LAY.notes.subsOSM)+' <b>Data-center buildings:</b> '+esc(LAY.notes.dcs)+' Place labels are hand-placed. <b>Facilities:</b> '+fmt(GEO.length)+' registrations with coordinates statewide ('+fmt(nn)+' in the Northern Virginia box; latest permit row per registration)'+(missing.length?'; '+fmt(missing.length)+' facility folders in the releases have no coordinates in that layer and are not shown ('+esc(missing.slice(0,8).join(", "))+(missing.length>8?", …":"")+').':'.')+'</p>';
   p.innerHTML=h;
-  Array.prototype.forEach.call(p.querySelectorAll("input[data-mt]"),function(c){c.onchange=function(){MAP.show[c.getAttribute("data-mt")]=c.checked;drawMap();};});
+  Array.prototype.forEach.call(p.querySelectorAll("input[data-mt]"),function(c){c.onchange=function(){MAP.show[c.getAttribute("data-mt")]=c.checked;if(c.getAttribute("data-mt")==="health")renderMap();else drawMap();};});
   $("#mext").onchange=function(){MAP.ext=this.value;MAP.view=null;drawMap();};
   if($("#mchoro"))$("#mchoro").onchange=function(){MAP.choro=+this.value;drawMap();};
   if($("#mplume"))$("#mplume").onchange=function(){MAP.plume=+this.value;drawMap();};
-  $("#msize").onchange=function(){MAP.size=this.value;drawMap();};$("#monly").onchange=function(){MAP.only=this.value;drawMap();};
+  hxMapBind(p);$("#msize").onchange=function(){MAP.size=this.value;drawMap();};$("#monly").onchange=function(){MAP.only=this.value;drawMap();};
   drawMap();
 }
 var COUNTYLAB=null;
@@ -454,6 +455,7 @@ function countyLabels(){if(COUNTYLAB)return COUNTYLAB;COUNTYLAB=[];var has={};GE
   (LAY.counties||[]).forEach(function(c){if(!has[c.f])return;var best=c.r.reduce(function(a,r){return r.length>a.length?r:a;},c.r[0]),xs=best.map(function(q){return q[0];}),ys=best.map(function(q){return q[1];});
     COUNTYLAB.push([c.n.replace(/ County$/,""),(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2,(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2]);});return COUNTYLAB;}
 function drawMap(){
+  HXMAP=hxMapPrep();
   var host=$("#mapSvg");countyLabels();if(!host)return;var W=Math.floor(host.clientWidth)||320;
   var H=Math.round(Math.max(360,Math.min(W*0.78,620)));
   var STATE=MAP.ext==="state",base=STATE?GEO:GEO.filter(function(g){return g.nova;});if(base.length<3)base=GEO;
@@ -499,7 +501,7 @@ function drawMap(){
   OV.points.forEach(function(q){if(MAP.show["k:"+(q.kind||"point")]!==true)return;var a=P(q.lon,q.lat);items.push({x:a[0],y:a[1],t:'ovp',ki:KINDS.indexOf(q.kind||"point"),tip:(function(){var p=String(q.label||q.kind||"point").split(" | ");return "**"+p[0]+"**\n"+p.slice(1).join("\n")+(p.length>1?"\n":"")+klab(q.kind||"point");})()});});
   var gl2=GEO.filter(function(g){return MAP.only==="docs"?!!DOC_BY_REG[g.reg]:MAP.only==="logs"?hasLogs(g.reg):true;}).sort(function(a,b){return mapRadius(b)-mapRadius(a);});
   gl2.forEach(function(g){var a=P(g.lon,g.lat),lg=hasLogs(g.reg),dc=DOC_BY_REG[g.reg]||0;
-    items.push({x:a[0],y:a[1],t:'fac',g:g,r:mapRadius(g),cls:lg?"log":dc?"doc":"none",tip:"**"+g.name+"**\nReg. "+g.reg+" · "+(g.city||"")+(g.county?", "+(g.countyLabel||g.county):"")+"\n"+fmt(g.gens)+" generators; rated total "+fmt(g.rate)+" kW\nPermit row year "+(g.year||"?")+"\n"+(dc?fmt(dc)+" documents in the releases":"No documents in the releases")+(lg?"\nRun logs: "+fmt(EV_BY_REG[g.reg]||0)+" events, "+fmt(EV_HRS_REG[g.reg]||0,0)+" h":"")+"\nClick to filter the other pages"});});
+    items.push({x:a[0],y:a[1],t:'fac',g:g,r:mapRadius(g),cls:lg?"log":dc?"doc":"none",tip:"**"+g.name+"**\nReg. "+g.reg+" · "+(g.city||"")+(g.county?", "+(g.countyLabel||g.county):"")+"\n"+fmt(g.gens)+" generators; rated total "+fmt(g.rate)+" kW\nPermit row year "+(g.year||"?")+"\n"+(dc?fmt(dc)+" documents in the releases":"No documents in the releases")+(lg?"\nRun logs: "+fmt(EV_BY_REG[g.reg]||0)+" events, "+fmt(EV_HRS_REG[g.reg]||0,0)+" h":"")+(HXMAP?hxMapTip(g):"")+"\nClick to filter the other pages"});});
   items.forEach(function(it,i){
     if(it.t==='dc')s+='<circle data-i="'+i+'" r="1.8" fill="var(--ink-3)" fill-opacity=".55" data-tip="'+esc(it.tip)+'"/>';
     else if(it.t==='sub')s+='<rect data-i="'+i+'" width="7" height="7" x="-3.5" y="-3.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.6" data-tip="'+esc(it.tip)+'"/>';
@@ -555,7 +557,7 @@ function drawMap(){
   var lg=dot("var(--accent)","var(--accent)",2,.9,'<circle r="2.2" fill="var(--rc-emergency)"/>')+'run logs extracted ('+nlog+')';
   lg='<span>'+lg+'</span><span>'+dot("var(--accent-soft)","var(--accent)",1.5,.9)+'documents in the releases, no run logs ('+ndoc+')</span><span>'+dot("var(--surface)","var(--ink-3)",1.5,.55)+'permit listed, nothing in these releases ('+nnone+')</span>';
   var szs=MAP.size==="rate"?[[20000,"20 MW"],[100000,"100 MW"],[400000,"400 MW"],[1300000,"1.3 GW"]]:[[10,"10"],[50,"50"],[200,"200"]];
-  lg+='<span>size ('+(MAP.size==="rate"?"permitted capacity, kW":"generators")+'): '+szs.map(function(z){var r=MAP.size==="rate"?2.5+0.75*Math.sqrt(z[0]/1000):2.5+Math.sqrt(z[0]);return '<svg width="'+(2*r+6)+'" height="'+(2*r+4)+'" viewBox="'+(-r-3)+' '+(-r-2)+' '+(2*r+6)+' '+(2*r+4)+'" aria-hidden="true"><circle r="'+r+'" fill="none" stroke="var(--ink-2)" stroke-width="1.3"/></svg>'+z[1];}).join(" &nbsp; ")+'</span>';
+  if(HXMAP)lg+=hxMapLegend();else lg+='<span>size ('+(MAP.size==="rate"?"permitted capacity, kW":"generators")+'): '+szs.map(function(z){var r=MAP.size==="rate"?2.5+0.75*Math.sqrt(z[0]/1000):2.5+Math.sqrt(z[0]);return '<svg width="'+(2*r+6)+'" height="'+(2*r+4)+'" viewBox="'+(-r-3)+' '+(-r-2)+' '+(2*r+6)+' '+(2*r+4)+'" aria-hidden="true"><circle r="'+r+'" fill="none" stroke="var(--ink-2)" stroke-width="1.3"/></svg>'+z[1];}).join(" &nbsp; ")+'</span>';
  if(MAP.show.counties)lg+='<span><svg width="26" height="10" aria-hidden="true"><rect x="1" y="1" width="24" height="8" fill="none" stroke="var(--ink-3)" stroke-width="1" rx="2"/></svg>county outline</span>';
   if(MAP.show.lines)lg+='<span><svg width="26" height="10" aria-hidden="true"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--grid-500)" stroke-width="2.4"/></svg>500 kV</span><span><svg width="26" height="10" aria-hidden="true"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--grid-230)" stroke-width="1.6"/></svg>230 kV</span><span><svg width="26" height="10" aria-hidden="true"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--grid-low)" stroke-width="1.1"/></svg>115-138 kV</span>';
   if(MAP.show.hifld)lg+='<span><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><rect x="-3.5" y="-3.5" width="7" height="7" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.6"/></svg>substation (HIFLD)</span>';
@@ -907,7 +909,7 @@ function renderSections(pane,data,o){
 }
 function renderSpa(){renderSections($("#pane-spa"),GS,{empty:"Spatial analysis not available.",emptyNote:"The spatial-analysis file was not found when this site was built."});}
 function renderEmi(){renderSections($("#pane-emi"),EMI,{empty:"Emissions and wind analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
-function renderHea(){renderSections($("#pane-hea"),HEA,{empty:"Health-impact analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
+function renderHea(){renderSections($("#pane-hea"),HEA,{empty:"Health-impact analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});hxRender();}
 function renderAq(){renderSections($("#pane-aq"),OZ,{empty:"Air-quality analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
 function renderTax(){renderSections($("#pane-tax"),TAX,{empty:"Tax analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
 function renderEle(){renderSections($("#pane-ele"),ELE,{empty:"Electricity-price analysis not available.",emptyNote:"The analysis file for this page was not found when this site was built."});}
@@ -935,8 +937,171 @@ function renderMet(){
   p.innerHTML=h;
 }
 
+/* ---- headline tiles (every page) ---- */
+var HLP=D("d-headlines_pages","DEQ_HEADLINES_PAGES"),HXS=D("d-health_sites","DEQ_HEALTH_SITES");
+var HL_PAGEKEY={ov:"overview",doc:"documents",fac:"facilities",run:"runlogs",out:"outages",map:"map"};
+function headlinesFor(t){var d={spa:GS,emi:EMI,hea:HEA,aq:OZ,tax:TAX,ele:ELE,dem:DEM,cap:CAP,lar:LAR,nei:NEI}[t];
+  if(d)return d.headlines||[];var k=HL_PAGEKEY[t];return (k&&HLP&&HLP.pages&&HLP.pages[k])||[];}
+function renderHeadlines(t){var host=$("#hlHost");if(!host)return;var L=headlinesFor(t);
+  if(!L.length){host.innerHTML="";return;}
+  host.innerHTML='<section class="hl" aria-label="Headline numbers for this page"><div class="hlg">'+L.map(function(x){
+    var v=String(x.value==null?"":x.value),u=x.unit&&v.indexOf(x.unit)<0?x.unit:"";
+    var sid=x.section_id,ok=sid&&document.getElementById("sec-"+sid),href=ok?"#sec-"+sid:"#app";
+    return '<a class="hlt'+(v.length+u.length>15?" long":"")+'" href="'+esc(href)+'"><b>'+esc(v)+(u?' <small>'+esc(u)+'</small>':"")+'</b><span class="hll">'+esc(x.label||"")+'</span><span class="hlc">'+esc(x.context||"")+'</span></a>';}).join("")+'</div></section>';
+}
+
+/* ---- health by site: aggregate / disaggregate explorer ---- */
+var HXORDER=["logged_runs","actual_like","curtail_4h_50","curtail_12h_50","curtail_24h_50","permit_max"];
+var HXMLAB={deaths:"Deaths",usd:"Dollars (2024 USD)",nox:"Tons of NOx"};
+var HXSHORT={isrm_ground:"ISRM ground",isrm_lowstack:"ISRM low stack",epa_low:"EPA low",epa_high:"EPA high",range:"range across methods"};
+var HX={scen:"logged_runs",method:"isrm_ground",metric:"deaths",group:"site",region:"all",ops:[],logs:false,q:"",sel:{},drill:null,exp:{},sort:"",dir:-1,opsOpen:false,allOpen:false};
+var HXSAVE=["scen","method","metric","group","region","ops","logs","q"],HXHOST=null,HXBY={},HXMAP=null;
+if(HXS)HXS.sites.forEach(function(s){HXBY[String(s.reg)]=s;});
+function hxScenIds(){return HXORDER.filter(function(id){return HXS.scenarios.some(function(s){return s.id===id;});});}
+function hxScenLab(id){var r="";HXS.scenarios.forEach(function(s){if(s.id===id)r=s.label;});return r||id;}
+function hxMethIds(){return HXS.methods.map(function(m){return m.id;});}
+function hxMethLab(id){if(id==="range")return "Range: min–max across methods";var r="";HXS.methods.forEach(function(m){if(m.id===id)r=m.label;});return r||id;}
+function hxNorm(){if(!HXS)return;if(hxScenIds().indexOf(HX.scen)<0)HX.scen="logged_runs";
+  if(hxMethIds().indexOf(HX.method)<0&&HX.method!=="range")HX.method="isrm_ground";
+  if(!HXMLAB[HX.metric])HX.metric="deaths";if(["site","operator","county","region"].indexOf(HX.group)<0)HX.group="site";
+  if(["all","nova","rest"].indexOf(HX.region)<0)HX.region="all";if(!Array.isArray(HX.ops))HX.ops=[];HX.logs=!!HX.logs;HX.q=String(HX.q||"");}
+function hxLoad(){try{var o=JSON.parse(localStorage.getItem("deq_hx")||"null");if(o)HXSAVE.forEach(function(k){if(o[k]!==undefined)HX[k]=o[k];});}catch(e){}hxNorm();}
+function hxSave(){try{var o={};HXSAVE.forEach(function(k){o[k]=HX[k];});localStorage.setItem("deq_hx",JSON.stringify(o));}catch(e){}}
+hxLoad();
+function hxVal(s,sc,m,mt){var v=s.values&&s.values[sc];if(!v||!v[m])return null;var r=v[m],x=mt==="deaths"?r.deaths:mt==="usd"?r.usd:(r.tons?r.tons.NOx:null);return x==null?null:x;}
+function hxSum(sites,m,mt){var t=0,n=0;sites.forEach(function(s){var v=hxVal(s,HX.scen,m,mt);if(v!=null){t+=v;n++;}});return n?t:null;}
+function hxStatM(sites,mt,ms){var vs=ms.map(function(m){return hxSum(sites,m,mt);}).filter(function(v){return v!=null;});
+  if(!vs.length)return {v:null,lo:null,hi:null};var lo=Math.min.apply(null,vs),hi=Math.max.apply(null,vs);return {v:ms.length>1?(lo+hi)/2:vs[0],lo:lo,hi:hi};}
+function hxStat(sites,mt){return hxStatM(sites,mt,HX.method==="range"?hxMethIds():[HX.method]);}
+function hxAcross(sites,mt){return hxStatM(sites,mt,hxMethIds());}
+function hxF(mt,v){if(v==null)return "—";var a=Math.abs(v);
+  if(mt==="usd")return a>=1e9?"$"+fmt(v/1e9,2)+" B":a>=1e6?"$"+fmt(v/1e6,2)+" M":a>=1e3?"$"+fmt(v/1e3,0)+" k":"$"+fmt(v,0);
+  if(mt==="nox")return a>=100?fmt(v,0):a>=10?fmt(v,1):fmt(v,2);
+  return a>=100?fmt(v,0):a>=10?fmt(v,1):a>=1?fmt(v,2):a>=0.01?fmt(v,3):fmt(v,4);}
+function hxR(mt,st){if(!st||st.v==null)return "—";if(st.hi-st.lo>5e-4*Math.abs(st.hi))return hxF(mt,st.lo)+"–"+hxF(mt,st.hi);return hxF(mt,st.v);}
+function hxKey(g,s){return g==="site"?String(s.reg):g==="operator"?(s.operator||"other"):g==="county"?(s.county||"(no county: no location)"):(s.nova?"Northern Virginia":"Rest of Virginia");}
+var HXGLAB={site:"Data center",operator:"Operator",county:"County",region:"Northern Virginia vs rest"};
+function hxSites(){var q=HX.q.trim().toLowerCase();return HXS.sites.filter(function(s){
+  if(!s.values||!s.values[HX.scen])return false;
+  if(HX.region==="nova"&&!s.nova)return false;if(HX.region==="rest"&&s.nova)return false;
+  if(HX.ops.length&&HX.ops.indexOf(s.operator||"other")<0)return false;
+  if(HX.logs&&!s.has_run_logs)return false;
+  if(q&&(s.name+" "+s.reg+" "+(s.operator||"")+" "+(s.county||"")+" "+(s.city||"")).toLowerCase().indexOf(q)<0)return false;
+  if(HX.drill&&hxKey(HX.drill.g,s)!==HX.drill.k)return false;return true;});}
+function hxGroups(sites){var by={},order=[],g=HX.drill?"site":HX.group;
+  sites.forEach(function(s){var k=hxKey(g,s);if(!by[k]){by[k]={key:k,g:g,sites:[],label:g==="site"?s.name:k};order.push(k);}by[k].sites.push(s);});
+  return order.map(function(k){var r=by[k];r.st={deaths:hxStat(r.sites,"deaths"),usd:hxStat(r.sites,"usd"),nox:hxStat(r.sites,"nox")};return r;});}
+function hxSortRows(rows,sk,dir){return rows.sort(function(a,b){var va,vb;
+  if(sk==="label"){va=a.label;vb=b.label;}else if(sk==="n"){va=a.sites.length;vb=b.sites.length;}else{va=a.st[sk].v;vb=b.st[sk].v;}
+  if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;return dir*cmp(va,vb);});}
+function hxOpts(vals,cur){return vals.map(function(v){return '<option value="'+esc(v[0])+'"'+(v[0]===cur?" selected":"")+'>'+esc(v[1])+'</option>';}).join("");}
+function hxSub(s){return esc((s.operator||"other")+(s.county?" · "+s.county:" · no location")+(s.has_run_logs?" · run logs":""));}
+function hxCell(mt,st){return '<td class="n'+(mt===HX.metric?" hit":"")+'">'+esc(hxR(mt,st))+'</td>';}
+function hxTotPart(mt,basis){var st=hxStat(basis,mt),ac=hxAcross(basis,mt),h;
+  var nm=mt==="deaths"?"deaths":mt==="usd"?"(2024 USD)":"t NOx";
+  if(HX.method==="range"||mt==="nox")h='<b>'+esc(hxR(mt,st))+'</b> '+nm+(HX.method==="range"&&mt!=="nox"?' <span class="muted">(range across methods)</span>':'');
+  else if(st.v==null)h='<b>—</b> '+nm+' <span class="muted">(EPA gives dollars only)</span>';
+  else h='<b>'+esc(hxF(mt,st.v))+'</b> '+nm+' <span class="muted">('+esc(HXSHORT[HX.method])+')</span>';
+  if(HX.method!=="range"&&mt!=="nox"&&ac.v!=null)h+=' <span class="rng">range across methods <b>'+esc(hxR(mt,ac))+'</b></span>';
+  return h;}
+function hxDraw(){var host=HXHOST;if(!host)return;
+  var sites=hxSites(),rows=hxGroups(sites),mt=HX.metric,sk=HX.sort||mt,chk=sites.filter(function(s){return HX.sel[s.reg];}),basis=chk.length?chk:sites;
+  var tot={deaths:0,usd:0,nox:0};rows.forEach(function(r){["deaths","usd","nox"].forEach(function(m){if(r.st[m].v!=null)tot[m]+=r.st[m].v;});});
+  hxSortRows(rows,sk,HX.dir);
+  var ops=uniq(HXS.sites.map(function(s){return s.operator||"other";})),opn={};HXS.sites.forEach(function(s){var o=s.operator||"other";opn[o]=(opn[o]||0)+1;});
+  ops.sort(function(a,b){return opn[b]-opn[a]||cmp(a,b);});
+  var nWithout=HXS.sites.length-HXS.sites.filter(function(s){return s.values&&s.values[HX.scen];}).length;
+  var h='<h2>Deaths by data center: aggregate and disaggregate</h2>';
+  h+='<div class="note cav hxcav"><b>Read this first.</b> These are screening estimates, not measurements. Deaths are statistical, annualized model outputs (expected values from concentration-response models), not counts of identified people, and the models disagree: use the range across methods. '+esc((HXS.caveats||[]).slice(-1)[0]||"")+'<details><summary>All caveats and sources</summary><ul>'+(HXS.caveats||[]).map(function(c){return '<li>'+esc(c)+'</li>';}).join("")+'</ul><p class="cap"><b>Sources.</b> '+(HXS.sources||[]).map(esc).join("; ")+'</p></details></div>';
+  h+='<div class="bar hxctl">'+
+    '<label>Scenario<select id="hx-scen">'+hxOpts(hxScenIds().map(function(i){return [i,hxScenLab(i)];}),HX.scen)+'</select></label>'+
+    '<label>Method<select id="hx-method">'+hxOpts(hxMethIds().map(function(i){return [i,hxMethLab(i)];}).concat([["range",hxMethLab("range")]]),HX.method)+'</select></label>'+
+    '<label>Metric<select id="hx-metric">'+hxOpts([["deaths","Deaths"],["usd","Dollars, 2024 USD"],["nox","Tons of NOx"]],HX.metric)+'</select></label>'+
+    '<label>Group by<select id="hx-group">'+hxOpts([["site","Data center (site)"],["operator","Operator"],["county","County"],["region","Northern Virginia vs rest of VA"]],HX.group)+'</select></label>'+
+    '<label>Region<select id="hx-region">'+hxOpts([["all","All Virginia"],["nova","Northern Virginia"],["rest","Rest of Virginia"]],HX.region)+'</select></label>'+
+    '<label>Search<input type="search" id="hx-q" value="'+esc(HX.q)+'" placeholder="name, operator, county"></label>'+
+    '<label class="hxck"><span><input type="checkbox" id="hx-logs"'+(HX.logs?" checked":"")+'> has run logs</span></label>'+
+    '<details class="hxops" id="hx-opsd"'+(HX.opsOpen?" open":"")+'><summary>Operators: '+(HX.ops.length?HX.ops.length+" selected":"all")+'</summary><div class="hxoplist">'+ops.map(function(o){return '<label><input type="checkbox" data-hx="op" value="'+esc(o)+'"'+(HX.ops.indexOf(o)>=0?" checked":"")+'> '+esc(o)+' <span class="muted">'+opn[o]+'</span></label>';}).join("")+'</div></details>'+
+    '<button type="button" class="btn ghost" data-hx="reset">Reset</button></div>';
+  h+='<p class="cap">Scenario: '+esc((HXS.scenarios.filter(function(s){return s.id===HX.scen;})[0]||{}).description||"")+(nWithout&&HX.scen==="logged_runs"?" Only the facilities with run logs have logged-run values.":"")+'</p>';
+  if(HX.drill)h+='<span class="chip">Drilled into '+esc(HXGLAB[HX.drill.g])+': '+esc(HX.drill.label)+' <button type="button" data-hx="undrill" aria-label="Back to all groups">×</button></span>';
+  h+='<div class="selcard hxtot" aria-live="polite"><div><b>'+fmt(basis.length)+'</b> sites '+(chk.length?'<span class="muted">(checked, of '+fmt(sites.length)+' shown)</span>':'<span class="muted">(all '+fmt(sites.length)+' shown by the filters)</span>')+' &nbsp; '+hxTotPart("deaths",basis)+'</div><div>'+hxTotPart("usd",basis)+' &nbsp; '+hxTotPart("nox",basis)+'</div>'+
+    '<div class="hxbtn"><button type="button" class="btn ghost" data-hx="selall">Check all shown</button><button type="button" class="btn ghost" data-hx="selnone"'+(chk.length?"":" disabled")+'>Clear checks</button><button type="button" class="btn ghost" data-hx="csv">Copy table as CSV</button><span id="hxMsg" class="muted" role="status"></span></div>'+
+    '<details id="hx-alld"'+(HX.allOpen?" open":"")+'><summary>This selection under every method</summary><div class="tw"><table><thead><tr><th>Method</th><th class="n">Deaths</th><th class="n">$ 2024</th><th class="n">t NOx</th></tr></thead><tbody>'+hxMethIds().map(function(m){var f=function(x){return hxSum(basis,m,x);};return '<tr><td>'+esc(hxMethLab(m))+'</td><td class="n">'+esc(hxF("deaths",f("deaths")))+'</td><td class="n">'+esc(hxF("usd",f("usd")))+'</td><td class="n">'+esc(hxF("nox",f("nox")))+'</td></tr>';}).join("")+'</tbody></table></div></details></div>';
+  if(mt==="deaths"&&(HX.method==="epa_low"||HX.method==="epa_high"))h+='<div class="note">EPA benefit-per-ton methods give dollars only, so deaths show as a dash. Choose an ISRM method or the range.</div>';
+  else if(mt==="deaths"&&HX.method==="range")h+='<p class="cap">For deaths the range spans the two ISRM methods only; the EPA methods give no deaths.</p>';
+  // bars
+  var byM=rows.slice().sort(function(a,b){var x=a.st[mt].v,y=b.st[mt].v;if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return y-x;}),top=byM.slice(0,25),mx=0;
+  top.forEach(function(r){if(r.st[mt].hi!=null&&r.st[mt].hi>mx)mx=r.st[mt].hi;});
+  h+='<div class="card hxchart"><h3>Top '+top.length+' of '+rows.length+' '+esc(HXGLAB[HX.drill?"site":HX.group].toLowerCase())+(rows.length===1?"":" groups")+' by '+esc(HXMLAB[mt].toLowerCase())+' ('+esc(HXSHORT[HX.method])+'). Click a bar to '+(HX.drill||HX.group==="site"?'check that site':'drill down to its sites')+'.</h3>';
+  top.forEach(function(r){var st=r.st[mt],sh=tot[mt]?100*(st.v||0)/tot[mt]:0;
+    h+='<button type="button" class="hxb" data-hx="bar" data-k="'+esc(r.key)+'"><span class="hxl">'+esc(nowrap(r.label,34))+'</span><span class="tr" aria-hidden="true"><span class="fh" style="width:'+(mx?(100*(st.hi||0)/mx):0).toFixed(2)+'%"></span><span class="fi" style="width:'+(mx?(100*(st.lo||0)/mx):0).toFixed(2)+'%"></span></span><span class="hxv">'+esc(hxR(mt,st))+' · '+(st.v==null?"—":fmt(sh,1)+"%")+'</span></button>';});
+  if(!top.length)h+=noData("No sites match the filters.");
+  h+='<p class="cap">Solid bar = lowest method total, pale = highest (identical when one method is chosen). Percent = share of the total for the sites shown'+(HX.method==="range"?" (midpoint of the range)":"")+'.</p></div>';
+  // table
+  function th2(l,k,n){return '<th class="'+(n?"n":"")+'" data-hx="sort" data-k="'+k+'" tabindex="0" aria-sort="'+(sk===k?(HX.dir>0?"ascending":"descending"):"none")+'">'+l+'</th>';}
+  h+='<div class="tw hxtw"><table><thead><tr><th><span class="sr">Select</span></th>'+th2("Group: "+esc((HX.drill?HXGLAB.site:HXGLAB[HX.group]).toLowerCase()),"label")+th2("Sites","n",1)+th2("Deaths","deaths",1)+th2("$ 2024","usd",1)+th2("t NOx","nox",1)+'<th class="n">Share of '+esc(HXMLAB[mt].toLowerCase())+'</th></tr></thead><tbody>';
+  rows.forEach(function(r){var isSite=r.g==="site",open=!isSite&&HX.exp[r.key],nsel=r.sites.filter(function(s){return HX.sel[s.reg];}).length,sh=tot[mt]&&r.st[mt].v!=null?fmt(100*r.st[mt].v/tot[mt],1)+"%":"—";
+    h+='<tr class="hxg"><td class="hxc"><input type="checkbox" data-hx="chkg" data-regs="'+r.sites.map(function(s){return s.reg;}).join(",")+'" data-state="'+(nsel===0?"none":nsel===r.sites.length?"all":"some")+'" aria-label="Select '+esc(r.label)+'"></td><td>'+
+      (isSite?'<b>'+esc(r.label)+'</b><div class="muted">'+hxSub(r.sites[0])+' · reg. '+esc(r.sites[0].reg)+'</div>':'<button type="button" class="hxe" data-hx="exp" data-k="'+esc(r.key)+'" aria-expanded="'+(open?"true":"false")+'">'+(open?"▾":"▸")+' <b>'+esc(r.label)+'</b></button> <button type="button" class="btn ghost hxd" data-hx="drill" data-k="'+esc(r.key)+'">drill down</button>')+'</td><td class="n">'+fmt(r.sites.length)+'</td>'+hxCell("deaths",r.st.deaths)+hxCell("usd",r.st.usd)+hxCell("nox",r.st.nox)+'<td class="n">'+sh+'</td></tr>';
+    if(open){var kids=r.sites.slice().sort(function(a,b){var x=hxStat([a],mt).v,y=hxStat([b],mt).v;return (y==null?-1:y)-(x==null?-1:x);});
+      kids.forEach(function(s){var st={deaths:hxStat([s],"deaths"),usd:hxStat([s],"usd"),nox:hxStat([s],"nox")};
+        h+='<tr class="hxs"><td class="hxc"><input type="checkbox" data-hx="chk" data-reg="'+esc(s.reg)+'"'+(HX.sel[s.reg]?" checked":"")+' aria-label="Select '+esc(s.name)+'"></td><td class="hxsn">'+esc(s.name)+'<div class="muted">'+hxSub(s)+'</div></td><td class="n">1</td>'+hxCell("deaths",st.deaths)+hxCell("usd",st.usd)+hxCell("nox",st.nox)+'<td class="n">'+(tot[mt]&&st[mt].v!=null?fmt(100*st[mt].v/tot[mt],1)+"%":"—")+'</td></tr>';});}});
+  if(!rows.length)h+='<tr><td colspan="7" class="muted">No sites match the filters.</td></tr>';
+  h+='</tbody></table></div><textarea class="csv hidden" id="hxCsvBox" aria-label="Table as CSV" readonly></textarea>';
+  HXROWS=rows;HXTOT=tot;
+  keepFocus(function(){host.innerHTML=h;});
+  Array.prototype.forEach.call(host.querySelectorAll('input[data-hx="chkg"]'),function(c){var s=c.getAttribute("data-state");c.checked=s==="all";c.indeterminate=s==="some";});
+}
+var HXROWS=[],HXTOT={};
+function hxCsvText(){var mt=HX.metric,rows=[["scenario","method","group_by","group","sites","deaths","deaths_low","deaths_high","usd_2024","usd_low","usd_high","nox_tons","share_of_"+mt+"_pct"]];
+  function r6(v){return v==null?"":+Number(v).toPrecision(6);}
+  HXROWS.forEach(function(r){var d=r.st.deaths,u=r.st.usd,n=r.st.nox;rows.push([hxScenLab(HX.scen),hxMethLab(HX.method),HX.drill?"data center":HXGLAB[HX.group].toLowerCase(),r.label,r.sites.length,r6(d.v),r6(d.lo),r6(d.hi),r6(u.v),r6(u.lo),r6(u.hi),r6(n.v),HXTOT[mt]&&r.st[mt].v!=null?r6(100*r.st[mt].v/HXTOT[mt]):""]);});
+  return rows.map(function(r){return r.map(csvCell).join(",");}).join("\n");}
+function hxCopy(){var t=hxCsvText(),msg=$("#hxMsg"),box=$("#hxCsvBox");
+  function fb(){if(box){box.value=t;box.classList.remove("hidden");box.focus();box.select();try{document.execCommand("copy");}catch(e){}}if(msg)msg.textContent=" CSV shown below; copy it from the box.";}
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){if(msg)msg.textContent=" Copied "+HXROWS.length+" rows.";},fb);return;}}catch(e){}
+  fb();}
+function hxChange(){hxSave();hxDraw();}
+function hxBind(host){
+  host.onchange=function(e){var t=e.target,id=t.id,a=t.getAttribute("data-hx");
+    if(id==="hx-scen")HX.scen=t.value;else if(id==="hx-method")HX.method=t.value;else if(id==="hx-metric"){HX.metric=t.value;HX.sort="";HX.dir=-1;}
+    else if(id==="hx-group"){HX.group=t.value;HX.drill=null;HX.exp={};}else if(id==="hx-region")HX.region=t.value;else if(id==="hx-logs")HX.logs=t.checked;
+    else if(a==="op"){var i=HX.ops.indexOf(t.value);if(t.checked&&i<0)HX.ops.push(t.value);if(!t.checked&&i>=0)HX.ops.splice(i,1);HX.opsOpen=true;}
+    else if(a==="chk"){if(t.checked)HX.sel[t.getAttribute("data-reg")]=true;else delete HX.sel[t.getAttribute("data-reg")];}
+    else if(a==="chkg"){t.getAttribute("data-regs").split(",").forEach(function(r){if(t.checked)HX.sel[r]=true;else delete HX.sel[r];});}
+    else return;hxChange();};
+  host.oninput=function(e){if(e.target.id==="hx-q"){HX.q=e.target.value;hxChange();}};
+  host.addEventListener("toggle",function(e){if(e.target.id==="hx-opsd")HX.opsOpen=e.target.open;if(e.target.id==="hx-alld")HX.allOpen=e.target.open;},true);
+  function act(t){var a=t.getAttribute("data-hx"),k=t.getAttribute("data-k");
+    if(a==="exp"){if(HX.exp[k])delete HX.exp[k];else HX.exp[k]=true;hxDraw();}
+    else if(a==="drill"){HX.drill={g:HX.group,k:k,label:k};HX.exp={};hxDraw();}
+    else if(a==="undrill"){HX.drill=null;hxDraw();}
+    else if(a==="bar"){if(HX.drill||HX.group==="site"){if(HX.sel[k])delete HX.sel[k];else HX.sel[k]=true;hxDraw();}else{HX.drill={g:HX.group,k:k,label:k};HX.exp={};hxDraw();}}
+    else if(a==="sort"){if((HX.sort||HX.metric)===k)HX.dir=-HX.dir;else{HX.sort=k;HX.dir=k==="label"?1:-1;}hxDraw();}
+    else if(a==="selall"){hxSites().forEach(function(s){HX.sel[s.reg]=true;});hxDraw();}
+    else if(a==="selnone"){HX.sel={};hxDraw();}
+    else if(a==="csv")hxCopy();
+    else if(a==="reset"){HX.scen="logged_runs";HX.method="isrm_ground";HX.metric="deaths";HX.group="site";HX.region="all";HX.ops=[];HX.logs=false;HX.q="";HX.sel={};HX.drill=null;HX.exp={};HX.sort="";HX.dir=-1;hxChange();}}
+  host.onclick=function(e){var t=e.target.closest?e.target.closest("[data-hx]"):null;if(!t||t.tagName==="INPUT")return;act(t);};
+  host.onkeydown=function(e){var t=e.target;if(t.tagName==="TH"&&t.getAttribute("data-hx")==="sort"&&(e.key==="Enter"||e.key===" ")){e.preventDefault();act(t);}};
+}
+function hxRender(){var pane=$("#pane-hea");if(!pane||!HXS)return;
+  var host=document.createElement("section");host.className="gsec hx";host.id="explorer";pane.insertBefore(host,pane.firstChild);
+  HXHOST=host;hxBind(host);hxDraw();
+  if(location.hash==="#explorer"){try{host.scrollIntoView();}catch(e){}}}
+/* ---- health layer on the map ---- */
+function hxMapPrep(){if(!MAP.show.health||!HXS)return null;var by={},vmax=0;
+  HXS.sites.forEach(function(s){var v=hxStatM([s],HX.metric,HX.method==="range"?hxMethIds():[HX.method]).hi;if(v!=null&&v>0){by[String(s.reg)]=v;if(v>vmax)vmax=v;}});
+  return {by:by,vmax:vmax||1};}
+function hxMapTip(g){var s=HXBY[String(g.reg)];if(!s||!s.values||!s.values[HX.scen])return "\nHealth layer: no estimate for this scenario";
+  return "\nHealth ("+hxScenLab(HX.scen)+"; "+HXSHORT[HX.method]+"): "+hxR("deaths",hxStat([s],"deaths"))+" deaths, "+hxR("usd",hxStat([s],"usd"))+", "+hxR("nox",hxStat([s],"nox"))+" t NOx";}
+function hxMapCtl(){return '<label>Health scenario <select id="mhs">'+hxOpts(hxScenIds().map(function(i){return [i,hxScenLab(i)];}),HX.scen)+'</select></label><label>Method <select id="mhm">'+hxOpts(hxMethIds().map(function(i){return [i,HXSHORT[i]];}).concat([["range","range (max shown)"]]),HX.method)+'</select></label><label>Size = <select id="mhx">'+hxOpts([["deaths","deaths"],["usd","dollars"],["nox","tons NOx"]],HX.metric)+'</select></label>';}
+function hxMapBind(p){["mhs","mhm","mhx"].forEach(function(id){var e=p.querySelector("#"+id);if(!e)return;e.onchange=function(){if(id==="mhs")HX.scen=this.value;else if(id==="mhm")HX.method=this.value;else HX.metric=this.value;hxSave();drawMap();};});}
+function hxMapLegend(){var v=HXMAP.vmax;return '<span>size = '+esc(HXMLAB[HX.metric].toLowerCase())+', '+esc(hxScenLab(HX.scen))+', '+esc(HXSHORT[HX.method])+': '+[v,v/4,v/16].map(function(z){var r=3+17*Math.sqrt(z/v);return '<svg width="'+(2*r+6)+'" height="'+(2*r+4)+'" viewBox="'+(-r-3)+' '+(-r-2)+' '+(2*r+6)+' '+(2*r+4)+'" aria-hidden="true"><circle r="'+r+'" fill="none" stroke="var(--ink-2)" stroke-width="1.3"/></svg>'+esc(hxF(HX.metric,z));}).join(" &nbsp; ")+'; sites with no estimate are small dots</span>';}
+
 function renderAll(){renderChip();var f={ov:renderOv,map:renderMap,fac:renderFac,doc:renderDoc,run:renderRun,out:renderOut,spa:renderSpa,emi:renderEmi,hea:renderHea,aq:renderAq,tax:renderTax,ele:renderEle,dem:renderDem,cap:renderCap,lar:renderLar,nei:renderNei,src:renderSrc,met:renderMet};
-  Object.keys(f).forEach(function(k){if($("#pane-"+k))f[k]();});showTab(S.tab);}
+  Object.keys(f).forEach(function(k){if($("#pane-"+k))f[k]();});renderHeadlines(S.tab);showTab(S.tab);}
 if(window.matchMedia){try{window.matchMedia("(prefers-color-scheme: dark)").addListener(function(){setTimeout(function(){renderAll();},50);});}catch(e){}}
 renderHeader();renderNav();renderAll();
 })();
