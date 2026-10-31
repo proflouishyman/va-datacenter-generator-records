@@ -25,10 +25,10 @@ var RCLR={emergency_outage:"var(--rc-emergency)",maintenance:"var(--rc-maintenan
 function rcOf(r){return REASONS.indexOf(r)>=0?r:"other";}
 
 /* ---- state ---- */
-var TABS=PAGE?[PAGE]:["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","exp","tol","rel","src","met"];
-var PAGEFILE={ov:"index.html",qs:"questions.html",enf:"enforcement.html",dpr:"deathsperrun.html",exp:"experiments.html",tol:"tolerance.html",rel:"reliability.html",map:"map.html",fac:"facilities.html",doc:"documents.html",run:"runlogs.html",out:"outages.html",spa:"spatial.html",emi:"emissions.html",hea:"health.html",aq:"airquality.html",tax:"taxes.html",ele:"electricity.html",dem:"demographics.html",cap:"capacity.html",lar:"largeloads.html",nei:"nei.html",src:"sources.html",met:"methods.html"};
-var PAGENAME={ov:"Overview",qs:"Research questions",enf:"Enforcement",dpr:"Deaths per run",exp:"Natural experiments",tol:"Outage tolerance",rel:"Reliability and the cost of risk",map:"Map",fac:"Facilities",doc:"Documents",run:"Run logs",out:"Outages",spa:"Spatial analysis",emi:"Emissions & wind",hea:"Health impacts",aq:"Air quality",tax:"Taxes",ele:"Electricity prices",dem:"People nearby",cap:"Capacity market",lar:"Large loads",nei:"Emissions inventory",src:"Sources",met:"Methods & sources"};
-var PAGEORDER=["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","exp","tol","rel","src","met"];
+var TABS=PAGE?[PAGE]:["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","str","exp","tol","rel","src","met"];
+var PAGEFILE={ov:"index.html",qs:"questions.html",enf:"enforcement.html",dpr:"deathsperrun.html",str:"stresstest.html",exp:"experiments.html",tol:"tolerance.html",rel:"reliability.html",map:"map.html",fac:"facilities.html",doc:"documents.html",run:"runlogs.html",out:"outages.html",spa:"spatial.html",emi:"emissions.html",hea:"health.html",aq:"airquality.html",tax:"taxes.html",ele:"electricity.html",dem:"demographics.html",cap:"capacity.html",lar:"largeloads.html",nei:"nei.html",src:"sources.html",met:"methods.html"};
+var PAGENAME={ov:"Overview",qs:"Research questions",enf:"Enforcement",dpr:"Deaths per run",str:"Stress test: deaths",exp:"Natural experiments",tol:"Outage tolerance",rel:"Reliability and the cost of risk",map:"Map",fac:"Facilities",doc:"Documents",run:"Run logs",out:"Outages",spa:"Spatial analysis",emi:"Emissions & wind",hea:"Health impacts",aq:"Air quality",tax:"Taxes",ele:"Electricity prices",dem:"People nearby",cap:"Capacity market",lar:"Large loads",nei:"Emissions inventory",src:"Sources",met:"Methods & sources"};
+var PAGEORDER=["ov","qs","map","fac","doc","run","out","spa","emi","hea","aq","tax","ele","dem","cap","lar","nei","enf","dpr","str","exp","tol","rel","src","met"];
 var S={tab:PAGE||"ov",fac:"",
   doc:{q:"",req:"",ext:"",folder:"",sort:"title",dir:1,page:0},
   run:{eng:"",from:"",to:"",rc:"",sort:"date",dir:1,page:0,ptpage:0},
@@ -68,7 +68,7 @@ function setFac(r){S.fac=r;S.doc.page=0;S.run.page=0;S.run.ptpage=0;S.run.eng=""
   try{localStorage.setItem("deq_fac",r||"");}catch(e){}try{history.replaceState(null,"",(location.pathname||"")+(location.search||"")+facHash());}catch(e){}
   renderNav();renderAll();}
 function go(t){if(!PAGE){showTab(t);window.scrollTo(0,0);}else location.href=PAGEFILE[t]+facHash();}
-var GROUPS=[["ov"],["qs"],["Records",["doc","fac","run","enf"]],["Grid",["out","cap","lar","ele","exp","tol","rel"]],["Impacts",["emi","nei","aq","hea","dem","tax","dpr"]],["Analysis",["map","spa"]],["About",["met","src"]]];
+var GROUPS=[["ov"],["qs"],["Records",["doc","fac","run","enf"]],["Grid",["out","cap","lar","ele","exp","tol","rel"]],["Impacts",["emi","nei","aq","hea","dem","tax","dpr","str"]],["Analysis",["map","spa"]],["About",["met","src"]]];
 function closeMenus(){Array.prototype.forEach.call(document.querySelectorAll("#mainnav .mg"),function(m){m.classList.remove("open");var b=m.querySelector("button");if(b)b.setAttribute("aria-expanded","false");});}
 function renderNav(){var h="",nav=$("#mainnav");
   if(PAGE){nav.className="multi";
@@ -281,7 +281,7 @@ function renderRun(){
 /* =====================================================================
    Visualizations (hand-written SVG, sized to the container, themed by CSS tokens)
    ===================================================================== */
-var GEO=D("d-geo","DEQ_GEO")||[],LAY=D("d-layers","DEQ_LAYERS")||{lines:[],subs:[],dcs:[],notes:{lines:"",subsHIFLD:"",subsOSM:"",dcs:""}},OUTD=D("d-outages","DEQ_OUTAGES")||{},GS=D("d-geostats","DEQ_GEOSTATS"),EMI=D("d-emissions","DEQ_EMISSIONS"),HEA=D("d-health","DEQ_HEALTH"),OZ=D("d-ozone","DEQ_OZONE"),TAX=D("d-tax","DEQ_TAX"),ELE=D("d-electricity","DEQ_ELECTRICITY"),DEM=D("d-demographics","DEQ_DEMOGRAPHICS"),CAP=D("d-capacity","DEQ_CAPACITY"),LAR=D("d-large_load","DEQ_LARGE_LOAD"),NEI=D("d-nei","DEQ_NEI"),QS=D("d-questions","DEQ_QUESTIONS"),ENF=D("d-enforcement","DEQ_ENFORCEMENT"),DPR=D("d-deaths_per_run","DEQ_DEATHS_PER_RUN"),NEX=D("d-natural_experiments","DEQ_NATURAL_EXPERIMENTS"),TOL=D("d-outage_tolerance","DEQ_OUTAGE_TOLERANCE"),REL=D("d-reliability_risk","DEQ_RELIABILITY_RISK"),GRID=D("d-grid","DEQ_GRID"),SRC=D("d-sources","DEQ_SOURCES");
+var GEO=D("d-geo","DEQ_GEO")||[],LAY=D("d-layers","DEQ_LAYERS")||{lines:[],subs:[],dcs:[],notes:{lines:"",subsHIFLD:"",subsOSM:"",dcs:""}},OUTD=D("d-outages","DEQ_OUTAGES")||{},GS=D("d-geostats","DEQ_GEOSTATS"),EMI=D("d-emissions","DEQ_EMISSIONS"),HEA=D("d-health","DEQ_HEALTH"),OZ=D("d-ozone","DEQ_OZONE"),TAX=D("d-tax","DEQ_TAX"),ELE=D("d-electricity","DEQ_ELECTRICITY"),DEM=D("d-demographics","DEQ_DEMOGRAPHICS"),CAP=D("d-capacity","DEQ_CAPACITY"),LAR=D("d-large_load","DEQ_LARGE_LOAD"),NEI=D("d-nei","DEQ_NEI"),QS=D("d-questions","DEQ_QUESTIONS"),ENF=D("d-enforcement","DEQ_ENFORCEMENT"),DPR=D("d-deaths_per_run","DEQ_DEATHS_PER_RUN"),STR=D("d-stress_test","DEQ_STRESS_TEST"),NEX=D("d-natural_experiments","DEQ_NATURAL_EXPERIMENTS"),TOL=D("d-outage_tolerance","DEQ_OUTAGE_TOLERANCE"),REL=D("d-reliability_risk","DEQ_RELIABILITY_RISK"),GRID=D("d-grid","DEQ_GRID"),SRC=D("d-sources","DEQ_SOURCES");
 function overlays(){var o={kde:[],links:[],points:[],plumes:[],choro:[]};
   [[GS,"Spatial analysis"],[EMI,"Emissions"],[HEA,"Health"],[OZ,"Air quality"],[TAX,"Taxes"],[ELE,"Electricity"],[DEM,"People nearby"],[CAP,"Capacity market"],[LAR,"Large loads"],[NEI,"Emissions inventory"]].forEach(function(p){var d=p[0],mo=d&&d.map_overlays;
     if(mo){if(mo.kde){var k=mo.kde;k.src=p[1];o.kde.push(k);}(mo.links||[]).forEach(function(l){o.links.push(l);});(mo.points||[]).forEach(function(q){o.points.push(q);});if(mo.choropleth){var c=mo.choropleth;c.src=p[1];o.choro.push(c);}}
@@ -936,6 +936,7 @@ function renderNei(){renderSections($("#pane-nei"),NEI,{empty:"Emissions-invento
 function renderQs(){renderSections($("#pane-qs"),QS,{empty:"Research questions not available.",emptyNote:"The research-questions file was not found when this site was built."});}
 function renderEnf(){renderSections($("#pane-enf"),ENF,{empty:"Enforcement records not available.",emptyNote:"The enforcement analysis file was not found when this site was built."});}
 function renderDpr(){renderSections($("#pane-dpr"),DPR,{empty:"Deaths-per-run analysis not available.",emptyNote:"The deaths-per-run analysis file was not found when this site was built."});}
+function renderStr(){renderSections($("#pane-str"),STR,{empty:"Stress-test analysis not available.",emptyNote:"The stress-test analysis file was not found when this site was built."});}
 function renderExp(){renderSections($("#pane-exp"),NEX,{empty:"Natural-experiments analysis not available.",emptyNote:"The natural-experiments analysis file was not found when this site was built."});}
 function renderTol(){renderSections($("#pane-tol"),TOL,{empty:"Outage-tolerance analysis not available.",emptyNote:"The outage-tolerance analysis file was not found when this site was built."});}
 function renderRel(){renderSections($("#pane-rel"),REL,{empty:"Reliability analysis not available.",emptyNote:"The reliability analysis file was not found when this site was built."});}
@@ -962,7 +963,7 @@ function renderMet(){
 /* ---- headline tiles (every page) ---- */
 var HLP=D("d-headlines_pages","DEQ_HEADLINES_PAGES"),HXS=D("d-health_sites","DEQ_HEALTH_SITES");
 var HL_PAGEKEY={ov:"overview",doc:"documents",fac:"facilities",run:"runlogs",out:"outages",map:"map"};
-function headlinesFor(t){var d={qs:QS,enf:ENF,dpr:DPR,exp:NEX,tol:TOL,rel:REL,spa:GS,emi:EMI,hea:HEA,aq:OZ,tax:TAX,ele:ELE,dem:DEM,cap:CAP,lar:LAR,nei:NEI}[t];
+function headlinesFor(t){var d={qs:QS,enf:ENF,dpr:DPR,str:STR,exp:NEX,tol:TOL,rel:REL,spa:GS,emi:EMI,hea:HEA,aq:OZ,tax:TAX,ele:ELE,dem:DEM,cap:CAP,lar:LAR,nei:NEI}[t];
   if(d)return d.headlines||[];var k=HL_PAGEKEY[t];return (k&&HLP&&HLP.pages&&HLP.pages[k])||[];}
 function renderHeadlines(t){var host=$("#hlHost");if(!host)return;var L=headlinesFor(t);
   if(!L.length){host.innerHTML="";return;}
@@ -1122,7 +1123,7 @@ function hxMapCtl(){return '<label>Health scenario <select id="mhs">'+hxOpts(hxS
 function hxMapBind(p){["mhs","mhm","mhx"].forEach(function(id){var e=p.querySelector("#"+id);if(!e)return;e.onchange=function(){if(id==="mhs")HX.scen=this.value;else if(id==="mhm")HX.method=this.value;else HX.metric=this.value;hxSave();drawMap();};});}
 function hxMapLegend(){var v=HXMAP.vmax;return '<span>size = '+esc(HXMLAB[HX.metric].toLowerCase())+', '+esc(hxScenLab(HX.scen))+', '+esc(HXSHORT[HX.method])+': '+[v,v/4,v/16].map(function(z){var r=3+17*Math.sqrt(z/v);return '<svg width="'+(2*r+6)+'" height="'+(2*r+4)+'" viewBox="'+(-r-3)+' '+(-r-2)+' '+(2*r+6)+' '+(2*r+4)+'" aria-hidden="true"><circle r="'+r+'" fill="none" stroke="var(--ink-2)" stroke-width="1.3"/></svg>'+esc(hxF(HX.metric,z));}).join(" &nbsp; ")+'; sites with no estimate are small dots</span>';}
 
-function renderAll(){renderChip();var f={ov:renderOv,map:renderMap,fac:renderFac,doc:renderDoc,run:renderRun,out:renderOut,spa:renderSpa,emi:renderEmi,hea:renderHea,aq:renderAq,tax:renderTax,ele:renderEle,dem:renderDem,cap:renderCap,lar:renderLar,nei:renderNei,qs:renderQs,enf:renderEnf,dpr:renderDpr,exp:renderExp,tol:renderTol,rel:renderRel,src:renderSrc,met:renderMet};
+function renderAll(){renderChip();var f={ov:renderOv,map:renderMap,fac:renderFac,doc:renderDoc,run:renderRun,out:renderOut,spa:renderSpa,emi:renderEmi,hea:renderHea,aq:renderAq,tax:renderTax,ele:renderEle,dem:renderDem,cap:renderCap,lar:renderLar,nei:renderNei,qs:renderQs,enf:renderEnf,dpr:renderDpr,str:renderStr,exp:renderExp,tol:renderTol,rel:renderRel,src:renderSrc,met:renderMet};
   Object.keys(f).forEach(function(k){if($("#pane-"+k))f[k]();});renderHeadlines(S.tab);showTab(S.tab);}
 if(window.matchMedia){try{window.matchMedia("(prefers-color-scheme: dark)").addListener(function(){setTimeout(function(){renderAll();},50);});}catch(e){}}
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-pg]");if(!a||PAGE||e.ctrlKey||e.metaKey||e.shiftKey)return;
